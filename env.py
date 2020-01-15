@@ -34,15 +34,17 @@ class Corridor:
                 # location label
                 position = f'{i}{j}'
                 for k in range(1, branches+1):
-                    reward_location = str(k)
+                    reward_loc = str(k)
                     if (i == k) & (j == self.L): # if the agent is located at a reward, we observe this
                         l = 1
                     else:
                         l = 0
-                    partial_state = position + reward_location + str(l)
+                    partial_state = position + reward_loc + str(l)
                     for m in range(3):
                         # append indicator variable onto state
                         # 0 = unobserved, 1 = observed in state 1, 2 = observed in state 2
+                        if (i==0) & (j==self.L) & (m==0):
+                            continue
                         final_state = partial_state + str(m) 
                         all_states.append(final_state)
         self.all_states = all_states  
@@ -54,18 +56,23 @@ class Corridor:
         action_dict = {}
         for state in self.all_states:
             if (int(state[-2]) == 1): # observing reward = terminal state
-                action_dict[state] = None
+                action_dict[state] = [None]
             elif state[:2] == '00':
                 action_dict[state] = [i for i in range(branches + 1)]
             elif int(state[1])!=branchlength:
                 action_dict[state] = [1, -1]
             else:
                 action_dict[state] = [-1]
+                
         self.action_dict = action_dict
         
     def is_terminal(self):
         return int(self.state[-2]) == 1 
-
+    
+    def set_state(self, s):
+        self.state = s
+        pass
+    
     def initialize_episode(self):
         # sample context distribution
         x = random.uniform(0, 1)
@@ -92,16 +99,16 @@ class Corridor:
         else:
             if state[:2] == '00':
                 new_state = f'{action}1' + state[2:]
-            elif (action == -1) & (state[1] == 1):
+            elif (action == -1) & (int(state[1]) == 1):
                 # moving back to middle
                 new_state = '00' + state[2:]
             else:
                 new_pos = int(state[1])+action
                 # was observation of indicator made?
                 if (new_pos == self.L) & (int(state[0]) == 0):
-                    state[-1] = self.indicator
-                    new_state = state[0] + f'{new_pos}' + state[2:]
-                elif (new_pos == self.L) & (int(state[0]) == self.reward_location): # reward never in indicator corridor
+                    ind = self.indicator
+                    new_state = state[0] + f'{new_pos}' + state[2:-1] + str(ind)
+                elif (new_pos == self.L) & (state[0] == self.reward_loc): # reward never in indicator corridor
                     new_state = state[0] + f'{new_pos}' + state[2] + '1' + state[4]
                     r = 1
                 else:
@@ -144,5 +151,3 @@ class Corridor:
         nx.draw_spring(G,node_color = colour_map, with_labels=True)
         plt.show()
         pass
-
-                
